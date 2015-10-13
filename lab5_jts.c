@@ -139,7 +139,7 @@ const int notes[][2] = {
 #define INPUT  0
 #define OUTPUT 1
 
-#define SYSTIMER	((volatile unsigned int *) (0x3F003000))
+#define SYSTIMER	0x3F003000
 
 // Physical addresses
 #define BCM2836_PERI_BASE        0x3F000000
@@ -148,7 +148,7 @@ const int notes[][2] = {
 
 // Pointers that will be memory mapped when pioInit() is called
 volatile unsigned int *gpio; //pointer to base of gpio
-voltaile unsigned int *timer; //pointer to base of timer stuff
+volatile unsigned int *timer; //pointer to base of timer stuff
 
 
 void pioInit() {
@@ -237,43 +237,48 @@ void delayMicros(int micros) {
 	while (!(timer[0] & 0b0010));
 }
 
-void playNote(int freq, int duration) {
-	int period = 1000000 / freq;
-	int val = 0;
-	timer[5] = timer[1] + duration;
-	timer[0] = 0b0100;
-	while (!(timer[0] & 0b0100)) {
-		digitalWrite(23, val);
-		delayMicros(duration);
-		val = (val ==  0) ? 1 : 0;
+void playNote(int freq, int durationInMillis) {
+	if (freq == 0) {
+		delayMicros(durationInMillis * 1000);
+	}
+	else {
+		int halfperiod = 1000000 / freq / 2;
+		int counter = 0;
+		int end = durationInMillis * 1000 / halfperiod;
+		int val = 0;
+		while (counter < end) {
+			digitalWrite(23, val);
+			delayMicros(halfperiod);
+			val = (val ==  0) ? 1 : 0;
+			counter++;
+		}
 	}
 }
-
 
 void playSong() {
 	int counter = 0;
 	int note[2];
 	note[0] = notes[counter][0];
 	note[1] = notes[counter][1];
-	while (note[0] != 0 & note[1] != 0) {
-		note[0] = notes[counter][0];
-		note[1] = notes[counter][1];
+	while ( (note[0] > 0) | (note[1] > 0) ) {
 		playNote(note[0], note[1]);
 		counter++;
+		note[0] = notes[counter][0];
+		note[1] = notes[counter][1];
 	}
+	printf("Song is over\n");
 }
 
 void testSong() {
 	while (1) {
-		digitalWrite(23, 1);
-		delayMicros(1000000);
-		digitalWrite(23, 0);
-		delayMicros(1000000);
+		playNote(500, 1000);
+		playNote(300, 1000);
 	}
 }
 
 void main() {
+	piTimerInit();
 	pioInit();
 	pinMode(23, OUTPUT);
-	testSong();
+	playSong();
 }
