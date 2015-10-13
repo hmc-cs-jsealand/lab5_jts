@@ -258,13 +258,13 @@ void playNote(int freq, int durationInMillis) {
 void playSong() {
 	int counter = 0;
 	int note[2];
-	note[0] = notes[counter][0];
-	note[1] = notes[counter][1];
+	note[0] = frostyTheSnowman[counter][0];
+	note[1] = frostyTheSnowman[counter][1];
 	while ( (note[0] > 0) | (note[1] > 0) ) {
 		playNote(note[0], note[1]);
 		counter++;
-		note[0] = notes[counter][0];
-		note[1] = notes[counter][1];
+		note[0] = frostyTheSnowman[counter][0];
+		note[1] = frostyTheSnowman[counter][1];
 	}
 	printf("Song is over\n");
 }
@@ -295,5 +295,5 @@ const int frostyTheSnowman[][2] = {
 	{1397,	250},
 	{1319,	250},
 	{1175,	250},
-	{1047, 	750}
-}
+	{1047, 	750},
+	{0,	0}};
