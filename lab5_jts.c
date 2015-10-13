@@ -1,5 +1,4 @@
-// lab5_starter.c
-// Notes for Fur Elise, E155 Lab 5
+// lab5_starter.c // Notes for Fur Elise, E155 Lab 5
 
 // Pitch in Hz, duration in ms
 const int notes[][2] = {
@@ -183,26 +182,31 @@ void pinMode(int pin, int state) {
 	unsigned int offset = pin/10;
 	unsigned int shift = (pin % 10) * 3;
 	GPFSEL[offset] &= ~(7 << shift);
-	GPFSEL[offset] |= type << shift);
+	GPFSEL[offset] |= (state << shift);
 }
 
 // digitalWrite writes a 0 or 1 to the passed in pin
 void digitalWrite(int pin, int val) {
 	unsigned int set = (pin < 32) ? 7 : 8;
 	unsigned int clr = (pin < 32) ? 10 : 11;
-	if (val)
-		gpio[set] |= 1 << pin;
+	if (val == 1)
+		gpio[set] = 1 << (pin % 32);
 	else
-		gpio[clr] |= 1 << pin;
+		gpio[clr] = 1 << (pin % 32);
 }
 
 int digitalRead(int pin) {
 	int out;
 	if (pin < 32)
-		out = (GPLEV >> pin) && 1;
+		out = (GPLEV[0] >> pin) && 1;
 	else
 		out = (GPLEV[1] >> (pin - 32)) && 1;
 	return out;
+}
+void delayMicros(int micros) {
+	SYSTIMER[4] = SYSTIMER[1] + micros;
+	SYSTIMER[0] = 0b0010;
+	while (!(SYSTIMER[0] & 0b0010));
 }
 
 void playNote(int freq, int duration) {
@@ -211,28 +215,37 @@ void playNote(int freq, int duration) {
 	SYSTIMER[5] = SYSTIMER[1] + duration;
 	SYSTIMER[0] = 0b0100;
 	while (!(SYSTIMER[0] & 0b0100)) {
-		digitalWrite(5, val);
+		digitalWrite(23, val);
 		delayMicros(duration);
 		val = (val ==  0) ? 1 : 0;
 	}
 }
 
-void delayMicros(unsigned int micros) {
-	SYSTIMER[4] = SYSTIMER[1] + micros;
-	SYSTIMER[0] = 0b0010;
-	while (!(systimer[0] & 0b0010))
-}
 
 void playSong() {
 	int counter = 0;
-	while (note != {0, 0}) {
-		int[2] note = notes[counter];
+	int note[2];
+	note[0] = notes[counter][0];
+	note[1] = notes[counter][1];
+	while (note[0] != 0 & note[1] != 0) {
+		note[0] = notes[counter][0];
+		note[1] = notes[counter][1];
 		playNote(note[0], note[1]);
 		counter++;
 	}
 }
 
+void testSong() {
+	while (1) {
+		digitalWrite(23, 1);
+		delayMicros(1000000);
+		digitalWrite(23, 0);
+		delayMicros(1000000);
+	}
+}
+
 void main() {
 	pioInit();
-	playSong();
+	pinMode(23, OUTPUT);
+	testSong();
 }
