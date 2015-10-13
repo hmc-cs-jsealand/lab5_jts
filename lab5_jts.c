@@ -148,6 +148,7 @@ const int notes[][2] = {
 
 // Pointers that will be memory mapped when pioInit() is called
 volatile unsigned int *gpio; //pointer to base of gpio
+voltaile unsigned int *timer; //pointer to base of timer stuff
 
 
 void pioInit() {
@@ -177,6 +178,33 @@ void pioInit() {
 	gpio = (volatile unsigned *)reg_map;
 }
 
+void piTimerInit() {
+	int  mem_fd;
+	void *reg_map;
+
+	// /dev/mem is a psuedo-driver for accessing memory in the Linux filesystem
+	if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
+	      printf("can't open /dev/mem \n");
+	      exit(-1);
+	}
+
+	reg_map = mmap(
+	  NULL,             //Address at which to start local mapping (null means don't-care)
+      BLOCK_SIZE,       //Size of mapped memory block
+      PROT_READ|PROT_WRITE,// Enable both reading and writing to the mapped memory
+      MAP_SHARED,       // This program does not have exclusive access to this memory
+      mem_fd,           // Map to /dev/mem
+      SYSTIMER);       // Offset to timer address
+
+	if (reg_map == MAP_FAILED) {
+      printf("gpio mmap error %d\n", (int)reg_map);
+      close(mem_fd);
+      exit(-1);
+    }
+
+	timer = (volatile unsigned *)reg_map;
+}
+
 // pinMode sets a pin to be an INPUT, OUTPUT, or other state
 void pinMode(int pin, int state) {
 	unsigned int offset = pin/10;
@@ -204,17 +232,17 @@ int digitalRead(int pin) {
 	return out;
 }
 void delayMicros(int micros) {
-	SYSTIMER[4] = SYSTIMER[1] + micros;
-	SYSTIMER[0] = 0b0010;
-	while (!(SYSTIMER[0] & 0b0010));
+	timer[4] = timer[1] + micros;
+	timer[0] = 0b0010;
+	while (!(timer[0] & 0b0010));
 }
 
 void playNote(int freq, int duration) {
 	int period = 1000000 / freq;
 	int val = 0;
-	SYSTIMER[5] = SYSTIMER[1] + duration;
-	SYSTIMER[0] = 0b0100;
-	while (!(SYSTIMER[0] & 0b0100)) {
+	timer[5] = timer[1] + duration;
+	timer[0] = 0b0100;
+	while (!(timer[0] & 0b0100)) {
 		digitalWrite(23, val);
 		delayMicros(duration);
 		val = (val ==  0) ? 1 : 0;
