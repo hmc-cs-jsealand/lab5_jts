@@ -1,5 +1,10 @@
-// lab5_starter.c // Notes for Fur Elise, E155 Lab 5
+// lab5_jts.c
+// adapted from starter code on E155 website
+// Joshua Sealand jsealand@hmc.edu
+// 13 October 2015
+// main plays the song Frosty the Snowman
 
+// Notes for Fur Elise, E155 Lab 5
 // Pitch in Hz, duration in ms
 const int notes[][2] = {
 {659,	125},
@@ -264,7 +269,7 @@ const int frostyTheSnowman[][2] = {
 	{1047, 	250},
 	{880,	250},
 	{1047,	250},
-	{784,	1000}, //first fast phrase
+	{784,	1000}, //first fast phrase end
 	{1047,	120},
 	{0,		5},
 	{1047,	120},
@@ -321,6 +326,7 @@ const int frostyTheSnowman[][2] = {
 #define INPUT  0
 #define OUTPUT 1
 
+// base address of timer registers
 #define SYSTIMER	0x3F003000
 
 // Physical addresses
@@ -328,8 +334,10 @@ const int frostyTheSnowman[][2] = {
 #define GPIO_BASE               (BCM2836_PERI_BASE + 0x200000)
 #define BLOCK_SIZE (4*1024)
 
-// Pointers that will be memory mapped when pioInit() is called
+// Pointer that will be memory mapped when pioInit() is called
 volatile unsigned int *gpio; //pointer to base of gpio
+
+// Timer pointer that will be memory mapped when piTimerInit() is called
 volatile unsigned int *timer; //pointer to base of timer stuff
 
 
@@ -405,6 +413,7 @@ void digitalWrite(int pin, int val) {
 		gpio[clr] = 1 << (pin % 32);
 }
 
+// digitalRead reads in a digital value from the passed in pin
 int digitalRead(int pin) {
 	int out;
 	if (pin < 32)
@@ -413,12 +422,15 @@ int digitalRead(int pin) {
 		out = (GPLEV[1] >> (pin - 32)) && 1;
 	return out;
 }
+
+// delayMicros delays for micros microseconds
 void delayMicros(int micros) {
 	timer[4] = timer[1] + micros;
 	timer[0] = 0b0010;
 	while (!(timer[0] & 0b0010));
 }
 
+// playNote plays a note at the desired frequency for the desired duration
 void playNote(int freq, int durationInMillis) {
 	if (freq == 0) {
 		delayMicros(durationInMillis * 1000);
@@ -437,6 +449,7 @@ void playNote(int freq, int durationInMillis) {
 	}
 }
 
+// playSong steps through an array of notes/durations and plays them all
 void playSong() {
 	int counter = 0;
 	int note[2];
@@ -451,6 +464,7 @@ void playSong() {
 	printf("Song is over\n");
 }
 
+// testSong 
 void testSong() {
 	while (1) {
 		playNote(500, 1000);
@@ -458,6 +472,9 @@ void testSong() {
 	}
 }
 
+// set up the gpio and timer pointers
+// initialize pin 23 as an output
+// play the song
 void main() {
 	piTimerInit();
 	pioInit();
